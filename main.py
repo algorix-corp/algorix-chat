@@ -29,6 +29,13 @@ async def send_message(websocket: WebSocket, channel: str, username: str):
     await broadcast.publish(channel=channel, message=event.json())
 
 
+async def pingpong(websocket: WebSocket):
+    while True:
+        await websocket.send_text("ping")
+        await asyncio.sleep(1)
+        await websocket.receive_text()
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket, channel: str, username: str):
     await websocket.accept()
@@ -37,7 +44,9 @@ async def websocket_endpoint(websocket: WebSocket, channel: str, username: str):
             await asyncio.gather(
                 receive_message(websocket, channel, username),
                 send_message(websocket, channel, username),
+                pingpong(websocket),
             )
+
     except WebSocketDisconnect:
         await broadcast.publish(channel=channel, message=f"{username} left the room")
         await websocket.close()
